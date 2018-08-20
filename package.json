@@ -1,0 +1,24 @@
+{
+  "name": "translatedjsontoprtl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "create": "node createPrtl.js",
+    "middle": "node setMiddle.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/garyuu/TranslatedJSONToPrtl.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/garyuu/TranslatedJSONToPrtl/issues"
+  },
+  "homepage": "https://github.com/garyuu/TranslatedJSONToPrtl#readme",
+  "dependencies": {
+    "xml-parse": "^0.3.1"
+  }
+}

@@ -38,11 +38,10 @@ class PrtlGenerator {
 
     generate(i, j) {
         this.subId++;
-        // Test boundary
-        if (this.subId > 20)
-            return;
         console.log(this.subId);
         const subtitle = this.data.groups[i].contents[j];
+        if (!subtitle.isRender)
+            return;
         switch(subtitle.type) {
             case 0:
                 this.dialog(subtitle);
@@ -110,11 +109,15 @@ class PrtlGenerator {
         }
     }
 
+    removeHideMark(str) {
+        return str.replace(/[\[\]']+/g, '');
+    }
+
     dialog(subtitle) {
         this.rawDataList.push(this.subId);
         let lines;
         if (subtitle.content !== undefined)
-            lines = subtitle.content.split(/\r?\n/);
+            lines = subtitle.content.trim().split(/\r?\n/);
         else
             lines = [" "];
         let text = fs.readFileSync(this.findTemplatePath(subtitle.type, subtitle.size, lines.length), 'utf16le');
@@ -124,7 +127,7 @@ class PrtlGenerator {
         /* Content */
         const strTags = textChains[0].getElementsByTagName('TRString');
         for (let i = 0; i < lines.length; i++) {
-            strTags[i].textContent = lines[i];
+            strTags[i].textContent = this.removeHideMark(lines[i]);
             this.setRunCount(strTags[i]);
         }
 
@@ -147,20 +150,98 @@ class PrtlGenerator {
     }
 
     comment(subtitle) {
-            console.log(this.subId + ": " + subtitle.type);
-    
+        let text = fs.readFileSync(this.findTemplatePath(subtitle.type, subtitle.size), 'utf16le');
+        const dom = DOMParser.parseFromString(text);
+        const textChain = dom.getElementsByTagName('TextChain')[0];
+
+        /* Content */
+        let lines;
+        if (subtitle.content !== undefined)
+            lines = subtitle.content.trim().split(/\r?\n/);
+        else
+            lines = [" "];
+        // Create nodes
+        const strNode = textChain.getElementsByTagName('TextLine')[0];
+        let objID = parseInt(strNode.getAttribute('objectID'));
+        let prsID = parseInt(strNode.getAttribute('persistentID'));
+        for (let i = 1; i < lines.length; i++) {
+            const newNode = strNode.cloneNode(true);
+            newNode.setAttribute('objectID', ++objID)
+            newNode.setAttribute('persistentID', ++prsID)
+            textChain.appendChild(newNode);
+        }
+
+        // Fill in contents
+        const strTags = textChain.getElementsByTagName('TRString');
+        for (let i = 0; i < lines.length; i++) {
+            if (i != lines.length - 1)
+                strTags[i].setAttribute('TXMarker', "Booyah");
+            
+            strTags[i].textContent = lines[i];
+            this.setRunCount(strTags[i]);
+        }
+
+        // Change color
+        const color = Config.colors[subtitle.color];
+        const redTags = dom.getElementsByTagName('red');
+        for (let i in redTags) {
+            if (redTags[i].textContent == "232") {
+                redTags[i].textContent = color[0];
+                redTags[i].parentNode.getElementsByTagName('green')[0].textContent = color[1];
+                redTags[i].parentNode.getElementsByTagName('blue')[0].textContent = color[2];
+            }
+        }
+
+        let output = XMLSerializer.serializeToString(dom);
+        this.writePrtl(this.subId, output);
     }
 
     infomation(subtitle) {
-            console.log(this.subId + ": " + subtitle.type);
+        let text = fs.readFileSync(this.findTemplatePath(subtitle.type, subtitle.size), 'utf16le');
+        const dom = DOMParser.parseFromString(text);
+        const textChains = dom.getElementsByTagName('TextChain');
+
+        /* Title */
+        const strTag = textChains[0].getElementsByTagName('TRString')[0];
+        strTag.textContent = subtitle.title;
+        this.setRunCount(strTag);
     
+        /* Content */
+        let lines;
+        if (subtitle.content !== undefined)
+            lines = subtitle.content.trim().split(/\r?\n/);
+        else
+            lines = [" "];
+        // Create nodes
+        const strNode = textChains[1].getElementsByTagName('TextLine')[0];
+        let objID = parseInt(strNode.getAttribute('objectID'));
+        let prsID = parseInt(strNode.getAttribute('persistentID'));
+        for (let i = 1; i < lines.length; i++) {
+            const newNode = strNode.cloneNode(true);
+            newNode.setAttribute('objectID', ++objID)
+            newNode.setAttribute('persistentID', ++prsID)
+            textChains[1].appendChild(newNode);
+        }
+
+        // Fill in contents
+        const strTags = textChains[1].getElementsByTagName('TRString');
+        for (let i = 0; i < lines.length; i++) {
+            if (i != lines.length - 1)
+                strTags[i].setAttribute('TXMarker', "Booyah");
+            
+            strTags[i].textContent = lines[i];
+            this.setRunCount(strTags[i]);
+        }
+
+        let output = XMLSerializer.serializeToString(dom);
+        this.writePrtl(this.subId, output);
     }
 
     haigu(subtitle) {
         let text = fs.readFileSync(this.findTemplatePath(subtitle.type), 'utf16le');
         const dom = DOMParser.parseFromString(text);
         const strTags = dom.getElementsByTagName('TRString');
-        const lines = subtitle.content.split(/\r?\n/);
+        const lines = subtitle.content.trim().split(/\r?\n/);
         for (let i = 0; i < 4; i++) {
             strTags[i].textContent += lines[i];
             this.setRunCount(strTags[i]);

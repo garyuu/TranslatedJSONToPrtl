@@ -17,6 +17,7 @@ class PrtlGenerator {
         this.subId = 0;
         if (obj.ver != undefined) {
             switch (obj.ver) {
+            case 2:
             case 1:
                 this.data = obj;
                 this.outputDir = this.data.title;
@@ -54,6 +55,9 @@ class PrtlGenerator {
                 break;
             case 3:
                 this.haigu(subtitle);
+                break;
+            case 4:
+                this.battle(subtitle);
                 break;
             default:
                 console.log("Unknown type " + subtitle.type);
@@ -247,6 +251,68 @@ class PrtlGenerator {
             this.setRunCount(strTags[i]);
             let output = XMLSerializer.serializeToString(dom);
             this.writePrtl(this.subId + "-" + (i+1), output);
+        }
+    }
+
+    battleUnit(subtitle, name) {
+        let text = fs.readFileSync(this.findTemplatePath(subtitle.type, subtitle.size), 'utf16le');
+        const dom = DOMParser.parseFromString(text);
+        const textChain = dom.getElementsByTagName('TextChain')[0];
+
+        /* Content */
+        let lines;
+        if (subtitle.content !== undefined)
+            lines = subtitle.content.trim().split(/\r?\n/);
+        else
+            lines = [" "];
+        // Create nodes
+        const strNode = textChain.getElementsByTagName('TextLine')[0];
+        let objID = parseInt(strNode.getAttribute('objectID'));
+        let prsID = parseInt(strNode.getAttribute('persistentID'));
+        for (let i = 1; i < lines.length; i++) {
+            const newNode = strNode.cloneNode(true);
+            newNode.setAttribute('objectID', ++objID)
+            newNode.setAttribute('persistentID', ++prsID)
+            textChain.appendChild(newNode);
+        }
+
+        // Fill in contents
+        const strTags = textChain.getElementsByTagName('TRString');
+        for (let i = 0; i < lines.length; i++) {
+            if (i != lines.length - 1)
+                strTags[i].setAttribute('TXMarker', "Booyah");
+            
+            strTags[i].textContent = lines[i];
+            this.setRunCount(strTags[i]);
+        }
+
+        // Change color
+        const color = Config.colors[subtitle.color];
+        const redTags = dom.getElementsByTagName('red');
+        for (let i in redTags) {
+            if (redTags[i].textContent == "232") {
+                redTags[i].textContent = color[0];
+                redTags[i].parentNode.getElementsByTagName('green')[0].textContent = color[1];
+                redTags[i].parentNode.getElementsByTagName('blue')[0].textContent = color[2];
+            }
+        }
+
+        let output = XMLSerializer.serializeToString(dom);
+        this.writePrtl(this.subId + 'b' + name, output);
+    }
+
+    battle(subtitle) {
+        let result = {
+            type: 1,
+            size: 0
+        };
+        let side = 'L';
+        for (let i = 0; i < 2; i++, side = 'R') {
+            const info = subtitle.battleInfo[i];
+            for (let j = 0; j < info.length; j++)
+            result.color = info[j][0];
+            result.content = info[j][1];
+            this.battleUnit(result, side + j);
         }
     }
 }

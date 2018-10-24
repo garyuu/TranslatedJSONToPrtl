@@ -309,10 +309,11 @@ class PrtlGenerator {
         let side = 'L';
         for (let i = 0; i < 2; i++, side = 'R') {
             const info = subtitle.battleInfo[i];
-            for (let j = 0; j < info.length; j++)
-            result.color = info[j][0];
-            result.content = info[j][1];
-            this.battleUnit(result, side + j);
+            for (let j = 0; j < info.length; j++) {
+                result.color = info[j][0];
+                result.content = info[j][1];
+                this.battleUnit(result, side + j);
+            }
         }
     }
 }

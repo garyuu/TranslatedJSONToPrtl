@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "create": "node createPrtl.js",
-    "middle": "node setMiddle.js"
+    "middle": "node setMiddle.js",
+    "clean": "node clean.js"
   },
   "repository": {
     "type": "git",
